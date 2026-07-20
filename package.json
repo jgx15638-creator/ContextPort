@@ -1,0 +1,13 @@
+{
+  "name": "context-port",
+  "version": "0.1.0",
+  "description": "Portable conversation context for OpenClaw agents",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "MIT",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}
