@@ -1,13 +1,16 @@
 {
   "name": "context-port",
   "version": "0.1.0",
-  "description": "Portable conversation context for OpenClaw agents",
-  "main": "index.js",
-  "type": "commonjs",
-  "license": "MIT",
-  "openclaw": {
-    "extensions": [
-      "./index.js"
-    ]
-  }
+  "description": "Portable Codex session export/import hooks.",
+  "type": "module",
+  "bin": {
+    "context-port": "./src/cli.js"
+  },
+  "scripts": {
+    "check": "node --check src/cli.js && node --check src/store.js && node --check src/codex-config.js && node --check src/format.js && node --check src/schema.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
 }
