@@ -12,8 +12,7 @@
 
 ## 1. What Is ContextPort?
 
-ContextPort exports context from one AI agent session and imports it into
-another session.
+ContextPort exports context from one AI agent session and imports it into another session.
 
 ```text
 OpenClaw session
@@ -23,8 +22,7 @@ OpenClaw session
   -> Codex session continues the work
 ```
 
-ContextPort reads existing native session history. It does not modify native
-transcript files or replay previous tool calls.
+ContextPort reads existing native session history. It does not modify native transcript files or replay previous tool calls.
 
 ## 2. Installation
 
@@ -37,8 +35,7 @@ npm install
 npm link
 ```
 
-Exports work immediately after the common installation. Open the adapter setup
-below only when you need to import context into that host.
+Exports work immediately after the common installation. Open the adapter setup below only when you need to import context into that host.
 
 <details>
 <summary><strong>OpenClaw</strong></summary>
@@ -61,8 +58,7 @@ The plugin injects an imported bundle during `before_prompt_build`.
 
 <br>
 
-No additional setup is required. The first Codex import automatically adds a
-managed `UserPromptSubmit` hook.
+No additional setup is required. The first Codex import automatically adds a managed `UserPromptSubmit` hook.
 
 Codex may ask you to trust the hook the first time it runs.
 
@@ -77,8 +73,7 @@ contextport export --from openclaw -o task.contextport.json
 contextport import task.contextport.json --to codex
 ```
 
-That is the complete workflow. OpenClaw and Codex can both be used as the source
-or target.
+That is the complete workflow. OpenClaw and Codex can both be used as the source or target.
 
 <details>
 <summary><strong>OpenClaw commands</strong></summary>
@@ -132,5 +127,4 @@ contextport import task.contextport.json --to codex --session SESSION_ID
 
 </details>
 
-Without `-o`, exported bundles are written under `~/.contextport/exports/` and
-the generated path is printed in the terminal.
+Without `-o`, exported bundles are written under `~/.contextport/exports/` and the generated path is printed in the terminal.
