@@ -1,0 +1,15 @@
+{
+  "schema": "contextport.adapter/v1",
+  "id": "openclaw",
+  "display_name": "OpenClaw",
+  "status": "experimental",
+  "entrypoint": "index.js",
+  "capabilities": {
+    "live_capture": true,
+    "historical_read": false,
+    "external_export": true,
+    "external_import": true,
+    "targeted_import": true,
+    "in_agent_commands": true
+  }
+}
