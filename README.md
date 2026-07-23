@@ -43,6 +43,13 @@ and start from [`adapters/_template`](./adapters/_template/).
 
 ## Current Commands
 
+The first public CLI version intentionally has only two product commands:
+
+```text
+export
+import
+```
+
 Run from the repository while the package is not yet published:
 
 ```bash
@@ -50,22 +57,10 @@ npm install
 npm run contextport -- help
 ```
 
-List captured OpenClaw sessions:
-
-```bash
-npm run contextport -- sessions --host openclaw
-```
-
 Export the most recently active session:
 
 ```bash
 npm run contextport -- export --from openclaw --session latest
-```
-
-Inspect bundle metadata without printing conversation content:
-
-```bash
-npm run contextport -- inspect ~/.contextport/exports/FILE.contextport.json
 ```
 
 Queue a bundle for the next user-triggered OpenClaw session:
@@ -79,13 +74,6 @@ Target a known session explicitly:
 ```bash
 npm run contextport -- import ./FILE.contextport.json \
   --to openclaw --session SESSION_ID
-```
-
-Export and queue a handoff in one command:
-
-```bash
-npm run contextport -- handoff \
-  --from openclaw --to openclaw --session latest
 ```
 
 After an untargeted import, start or use a different OpenClaw session and send a

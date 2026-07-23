@@ -3,9 +3,7 @@
 
 const path = require("node:path");
 const {
-  BUNDLE_SCHEMA,
   createBundle,
-  listSessions,
   queueImport,
   readBundle,
   resolveSession,
@@ -19,11 +17,8 @@ function usage() {
   return `ContextPort ${VERSION} - portable context for AI agents
 
 Usage:
-  contextport sessions [--host openclaw]
   contextport export [--from openclaw] [--session latest] [-o FILE]
   contextport import FILE [--to openclaw] [--session SESSION_ID]
-  contextport inspect FILE
-  contextport handoff [--from openclaw] [--to openclaw] [--session latest]
 
 Import without --session is consumed by the next user-triggered target session.`;
 }
@@ -71,21 +66,6 @@ function exportSession(host, selector, output) {
   return { bundle, file };
 }
 
-function printSessions(host) {
-  requireHost(host);
-  const sessions = listSessions(host);
-  if (sessions.length === 0) {
-    console.log(`No captured sessions for ${host}.`);
-    return;
-  }
-  console.log("SESSION ID\tEVENTS\tUPDATED");
-  for (const { record } of sessions) {
-    console.log(
-      `${record.session?.id || "unknown"}\t${record.events?.length || 0}\t${record.updated_at || "unknown"}`
-    );
-  }
-}
-
 function queue(bundle, host, sessionId) {
   requireHost(host);
   return queueImport(host, bundle, sessionId || null);
@@ -100,11 +80,6 @@ function run(argv = process.argv.slice(2)) {
   }
   if (command === "--version" || command === "-v" || command === "version") {
     console.log(VERSION);
-    return;
-  }
-
-  if (command === "sessions") {
-    printSessions(option(options, "host", null, "openclaw"));
     return;
   }
 
@@ -129,31 +104,6 @@ function run(argv = process.argv.slice(2)) {
         ? `Target session: ${queued.request.target.session_id}`
         : "Target: next user-triggered session"
     );
-    return;
-  }
-
-  if (command === "inspect") {
-    if (!positional[0]) throw new Error("inspect requires a bundle file.");
-    const bundle = readBundle(path.resolve(positional[0]));
-    console.log(JSON.stringify({
-      schema: bundle.schema,
-      bundle_id: bundle.bundle_id,
-      exported_at: bundle.exported_at,
-      source: bundle.source,
-      event_count: bundle.events.length,
-      safety: bundle.safety
-    }, null, 2));
-    return;
-  }
-
-  if (command === "handoff") {
-    const source = option(options, "from", null, "openclaw");
-    const target = option(options, "to", null, "openclaw");
-    const selector = option(options, "session", null, "latest");
-    const result = exportSession(source, selector, null);
-    const queued = queue(result.bundle, target, null);
-    console.log(`Exported ${result.bundle.events.length} events to ${result.file}`);
-    console.log(`Queued handoff ${queued.request.request_id} for the next ${target} session.`);
     return;
   }
 

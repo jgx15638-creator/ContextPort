@@ -6,11 +6,10 @@ ContextPort uses an external-first hybrid architecture.
 
 The external CLI owns user intent and portable data operations:
 
-- select source and target hosts
-- list and select sessions
-- export, validate, inspect, and redact bundles
+- select source and target hosts through export and import
+- resolve the requested source session
+- export, validate, and redact bundles
 - queue imports and support rollback
-- compose a one-command handoff
 
 Host adapters own host-specific access:
 

@@ -15,7 +15,6 @@ Status: **planned**. This directory is reserved for the Claude Code integration.
 
 ```text
 Create a Claude Code session with user messages, tool calls, edits, and tests
-  -> contextport sessions --host claude-code lists it
   -> contextport export --from claude-code --session latest creates a valid bundle
   -> contextport import FILE --to claude-code queues or injects it safely
   -> a new Claude Code session recovers the goal, work, decisions, and next step

@@ -15,7 +15,6 @@ Status: **planned**. This directory is reserved for the Codex integration.
 
 ```text
 Create a Codex session with user messages, file reads, edits, and tests
-  -> contextport sessions --host codex lists it
   -> contextport export --from codex --session latest creates a valid bundle
   -> contextport import FILE --to codex queues or injects it safely
   -> a new Codex session recovers the goal, completed work, files, and next step
