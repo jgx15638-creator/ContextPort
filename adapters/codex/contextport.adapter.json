@@ -2,14 +2,14 @@
   "schema": "contextport.adapter/v1",
   "id": "codex",
   "display_name": "Codex",
-  "status": "planned",
-  "entrypoint": null,
+  "status": "experimental",
+  "entrypoint": "index.js",
   "capabilities": {
     "live_capture": false,
-    "historical_read": false,
-    "external_export": false,
-    "external_import": false,
-    "targeted_import": false,
+    "historical_read": true,
+    "external_export": true,
+    "external_import": true,
+    "targeted_import": true,
     "in_agent_commands": false
   }
 }

@@ -1,123 +1,123 @@
 # ContextPort
 
-Portable context for AI agents.
+Export context from one AI agent session and import it into another.
 
-ContextPort moves active work between agent hosts without editing their private
-session files. The external CLI is the control plane; small host adapters capture
-native events and inject validated handoffs at supported lifecycle hooks.
-
-OpenClaw is the first adapter. Codex and Claude Code adapters can be added behind
-the same host-independent bundle format.
-
-## Architecture
+ContextPort supports one small workflow:
 
 ```text
-                         portable bundle
-  source agent adapter  ----------------->  target agent adapter
-          |                                      ^
-          v                                      |
-   persistent session store <---- CLI ----> import inbox
-                               export/import
+agent session A
+  -> contextport export
+  -> portable .contextport.json bundle
+  -> contextport import
+  -> agent session B continues the work
 ```
 
-- `packages/core`: schemas, redaction, validation, storage, and rendering
-- `packages/cli`: external `contextport` command
-- `adapters`: one isolated integration directory per agent host
-- `docs`: design decisions and adapter contracts
+The first version intentionally exposes only two commands: `export` and
+`import`.
 
-The CLI intentionally does not modify OpenClaw transcripts. An external import
-is queued, then the adapter consumes it during `before_prompt_build`. In-agent
-commands remain available as convenience and recovery surfaces.
+> Status: early prototype. OpenClaw and Codex adapters are experimental. Claude
+> Code is planned.
 
-## Adapter Roadmap
+## Install From This Repository
 
-| Adapter | Status | Current scope |
-| --- | --- | --- |
-| [OpenClaw](./adapters/openclaw/) | Experimental | Hook capture and safe import injection |
-| [Codex](./adapters/codex/) | Planned | Directory and contribution contract reserved |
-| [Claude Code](./adapters/claude-code/) | Planned | Directory and contribution contract reserved |
-
-Each adapter has a machine-readable `contextport.adapter.json` manifest. New
-implementations should follow [Adapter Development](./docs/adapter-development.md)
-and start from [`adapters/_template`](./adapters/_template/).
-
-## Current Commands
-
-The first public CLI version intentionally has only two product commands:
-
-```text
-export
-import
-```
-
-Run from the repository while the package is not yet published:
+Requirements: Node.js 20+ and at least one supported agent host.
 
 ```bash
+git clone https://github.com/Xubqpanda/ContextPort.git
+cd ContextPort
 npm install
-npm run contextport -- help
+npm link
 ```
 
-Export the most recently active session:
+For OpenClaw imports, also enable the local plugin:
 
 ```bash
-npm run contextport -- export --from openclaw --session latest
+openclaw plugins install -l .
+openclaw plugins enable context-port
 ```
 
-Queue a bundle for the next user-triggered OpenClaw session:
+Restart OpenClaw after enabling the adapter. Historical export does not depend
+on the plugin; the plugin is only required to consume imports.
+
+## Export
+
+Export the latest session from either supported host:
 
 ```bash
-npm run contextport -- import ./FILE.contextport.json --to openclaw
+contextport export --from openclaw
+contextport export --from codex
 ```
 
-Target a known session explicitly:
-
-```bash
-npm run contextport -- import ./FILE.contextport.json \
-  --to openclaw --session SESSION_ID
-```
-
-After an untargeted import, start or use a different OpenClaw session and send a
-normal user message. The adapter consumes the oldest pending handoff once; a
-same-host handoff is not consumed by its source session.
-
-## OpenClaw Adapter
-
-The adapter records sanitized lifecycle events under:
+By default, ContextPort exports the most recently active native session and
+writes a bundle under:
 
 ```text
-~/.contextport/hosts/openclaw/sessions/
+~/.contextport/exports/
 ```
 
-It also retains two authenticated in-agent commands:
-
-```text
-/context-export
-/context-import latest
-```
-
-The original `openclaw-context-bundle/v1` format from the first implementation
-is accepted and normalized to `contextport.bundle/v1` during import.
-
-## Data and Safety
-
-- ContextPort is local-first and writes files with user-only permissions.
-- Common API key, bearer token, password, cookie, and secret fields are redacted.
-- Imported text is explicitly marked as untrusted historical context.
-- System prompts are not intentionally included in portable bundles.
-- Redaction is defense in depth, not a guarantee. Inspect bundles before sharing.
-
-Override the local data directory for testing or isolation:
+Choose a specific native session or output path when needed:
 
 ```bash
-export CONTEXTPORT_HOME=/path/to/contextport-data
+contextport export \
+  --from codex \
+  --session SESSION_ID \
+  -o task.contextport.json
 ```
+
+## Import
+
+Queue the exported bundle for either supported host:
+
+```bash
+contextport import task.contextport.json --to openclaw
+contextport import task.contextport.json --to codex
+```
+
+Then open or use a different target session and send a normal user message. The
+adapter injects the imported context once before the model receives that
+message. The first Codex import registers a managed hook in
+`~/.codex/hooks.json`; Codex may ask you to trust it once. OpenClaw import uses
+the enabled ContextPort plugin's `before_prompt_build` hook.
+
+Target a known session explicitly when required:
+
+```bash
+contextport import task.contextport.json \
+  --to codex \
+  --session TARGET_SESSION_ID
+```
+
+## What Is Transferred
+
+The current bundle contains sanitized events normalized by the adapter,
+including:
+
+- user inputs
+- assistant outputs
+- tool calls, results, and errors
+- source session and run metadata
+
+Imported content is marked as untrusted history. ContextPort does not
+automatically replay tool calls or external side effects.
+
+## Current Limitations
+
+- OpenClaw native reading is currently tested against OpenClaw `2026.3.13`.
+- Codex transcript reading and import are currently tested against Codex CLI
+  `0.144.5`.
+- Secret redaction is best effort; inspect bundles before sharing them.
+- Claude Code transfer is not implemented yet.
+- Untargeted imports are consumed by the next eligible session other than the
+  source session.
 
 ## Development
 
 ```bash
 npm test
-node packages/cli/bin/contextport.js help
 ```
 
-See [Architecture](./docs/architecture.md) for the host boundary and
-[Adapter Development](./docs/adapter-development.md) before opening an adapter PR.
+Adapter contributors should read:
+
+- [Adapter overview](./adapters/README.md)
+- [Adapter development guide](./docs/adapter-development.md)
+- [Architecture](./docs/architecture.md)

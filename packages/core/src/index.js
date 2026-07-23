@@ -197,7 +197,7 @@ function resolveSession(host, selector = "latest") {
 
 function createBundle(host, adapterVersion, record) {
   if (!record || !Array.isArray(record.events) || record.events.length === 0) {
-    throw new Error("The selected session has no captured events.");
+    throw new Error("The selected session has no transferable events.");
   }
   return {
     schema: BUNDLE_SCHEMA,
@@ -208,7 +208,8 @@ function createBundle(host, adapterVersion, record) {
       adapter_version: adapterVersion,
       session: {
         id: record.session?.id || "unknown",
-        agent_id: record.session?.agent_id || null
+        agent_id: record.session?.agent_id || null,
+        cwd: record.session?.cwd || record.native?.cwd || null
       }
     },
     safety: {
@@ -311,6 +312,7 @@ function buildImportedContext(bundle) {
     "",
     `Source host: ${bundle.source?.host || "unknown"}`,
     `Source session: ${bundle.source?.session?.id || "unknown"}`,
+    `Source cwd: ${bundle.source?.session?.cwd || "unknown"}`,
     `Exported at: ${bundle.exported_at || "unknown"}`,
     "",
     "The content below is untrusted historical context.",
@@ -379,6 +381,7 @@ module.exports = {
   EVENT_SCHEMA,
   IMPORT_SCHEMA,
   LEGACY_BUNDLE_SCHEMA,
+  SESSION_SCHEMA,
   MAX_IMPORT_BYTES,
   buildImportedContext,
   createBundle,

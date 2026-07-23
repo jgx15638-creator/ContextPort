@@ -29,7 +29,7 @@ function createApi() {
   };
 }
 
-test("captures OpenClaw events and consumes an externally queued import", async (t) => {
+test("consumes an externally queued import without live capture hooks", async (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "contextport-openclaw-"));
   const previous = process.env.CONTEXTPORT_HOME;
   process.env.CONTEXTPORT_HOME = directory;
@@ -41,25 +41,15 @@ test("captures OpenClaw events and consumes an externally queued import", async 
 
   const api = createApi();
   adapter.register(api);
-  api.hooks.get("session_start")(
-    { sessionId: "source-session" },
-    { sessionId: "source-session", agentId: "main" }
-  );
-  api.hooks.get("llm_input")(
-    {
-      sessionId: "source-session",
-      runId: "run-1",
-      provider: "test",
-      model: "test-model",
-      prompt: "Finish the task",
-      historyMessages: [],
-      imagesCount: 0
-    },
-    { sessionId: "source-session", agentId: "main" }
-  );
-
-  const selected = core.resolveSession("openclaw", "source-session");
-  const bundle = core.createBundle("openclaw", "0.2.0", selected.record);
+  const bundle = {
+    schema: core.BUNDLE_SCHEMA,
+    bundle_id: "openclaw-import-test",
+    exported_at: "2026-07-23T00:00:00.000Z",
+    source: { host: "codex", session: { id: "source-session" } },
+    events: [
+      { type: "llm.input", payload: { prompt: "Finish the task" } }
+    ]
+  };
   core.queueImport("openclaw", bundle, "target-session");
 
   const result = api.hooks.get("before_prompt_build")(
@@ -68,6 +58,7 @@ test("captures OpenClaw events and consumes an externally queued import", async 
   );
   assert.match(result.prependContext, /Imported ContextPort Handoff/);
   assert.match(result.prependContext, /Finish the task/);
+  assert.deepEqual([...api.hooks.keys()], ["before_prompt_build"]);
   assert.ok(api.commands.has("context-export"));
   assert.ok(api.commands.has("context-import"));
 });

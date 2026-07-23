@@ -6,19 +6,20 @@ const {
   createBundle,
   queueImport,
   readBundle,
-  resolveSession,
   writeBundle
 } = require("../../core/src");
+const codexAdapter = require("../../../adapters/codex");
+const openclawHistory = require("../../../adapters/openclaw/history");
 
 const VERSION = "0.2.0";
-const SUPPORTED_HOSTS = new Set(["openclaw"]);
+const SUPPORTED_HOSTS = new Set(["openclaw", "codex"]);
 
 function usage() {
   return `ContextPort ${VERSION} - portable context for AI agents
 
 Usage:
-  contextport export [--from openclaw] [--session latest] [-o FILE]
-  contextport import FILE [--to openclaw] [--session SESSION_ID]
+  contextport export [--from openclaw|codex] [--session latest] [-o FILE]
+  contextport import FILE [--to openclaw|codex] [--session SESSION_ID]
 
 Import without --session is consumed by the next user-triggered target session.`;
 }
@@ -49,25 +50,39 @@ function option(options, longName, shortName, fallback) {
 
 function requireHost(host) {
   if (!SUPPORTED_HOSTS.has(host)) {
-    throw new Error(`Unsupported host: ${host}. Currently supported: openclaw.`);
+    throw new Error(
+      `Unsupported host: ${host}. Currently supported: ${[...SUPPORTED_HOSTS].join(", ")}.`
+    );
   }
+}
+
+function resolveHostSession(host, selector) {
+  if (host === "codex") return codexAdapter.resolveSession(selector);
+  if (host === "openclaw") return openclawHistory.resolveSession(selector);
+  return null;
 }
 
 function exportSession(host, selector, output) {
   requireHost(host);
-  const selected = resolveSession(host, selector);
+  const selected = resolveHostSession(host, selector);
   if (!selected) {
     throw new Error(
-      `No captured ${host} session matched ${selector}. Run the host adapter first.`
+      `No ${host} session matched ${selector}. Start the host once or choose another session ID.`
     );
   }
-  const bundle = createBundle(host, VERSION, selected.record);
+  const adapterVersion = host === "codex"
+    ? codexAdapter.ADAPTER_VERSION
+    : host === "openclaw"
+      ? openclawHistory.ADAPTER_VERSION
+      : VERSION;
+  const bundle = createBundle(host, adapterVersion, selected.record);
   const file = writeBundle(bundle, output);
   return { bundle, file };
 }
 
 function queue(bundle, host, sessionId) {
   requireHost(host);
+  if (host === "codex") codexAdapter.prepareImport();
   return queueImport(host, bundle, sessionId || null);
 }
 

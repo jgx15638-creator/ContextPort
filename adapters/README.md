@@ -8,8 +8,8 @@ must not introduce a separate portable bundle format.
 
 | Adapter | Status | Live capture | Historical reader | Import injection |
 | --- | --- | ---: | ---: | ---: |
-| [OpenClaw](./openclaw/) | Experimental | Yes | Not yet | Yes |
-| [Codex](./codex/) | Planned | No | No | No |
+| [OpenClaw](./openclaw/) | Experimental | No | Yes | Yes |
+| [Codex](./codex/) | Experimental | No | Yes | Yes |
 | [Claude Code](./claude-code/) | Planned | No | No | No |
 
 Status meanings:

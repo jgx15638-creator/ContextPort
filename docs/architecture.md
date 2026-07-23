@@ -43,8 +43,8 @@ ContextPort/
 │   ├── core/                 # no dependency on any agent host
 │   └── cli/                  # external control plane
 ├── adapters/
-│   ├── openclaw/             # current experimental implementation
-│   ├── codex/                # reserved integration boundary
+│   ├── openclaw/             # native history reader and import hooks
+│   ├── codex/                # historical-reader and hook implementation
 │   ├── claude-code/          # reserved integration boundary
 │   ├── _template/            # starting point for another host
 │   └── test/                 # shared adapter contract tests
@@ -70,7 +70,9 @@ contextport import bundle --to openclaw
   -> return prependContext to OpenClaw
 ```
 
-An untargeted request is intentionally consumed only by a user-triggered run.
+Codex follows the same queue contract and consumes imports from its
+`UserPromptSubmit` hook. An untargeted request is intentionally consumed only by
+a user-triggered run.
 Production versions should add `pending`, `cancel`, expiry, and an interactive
 confirmation before an untargeted import is claimed.
 

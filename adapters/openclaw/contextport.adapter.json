@@ -5,8 +5,8 @@
   "status": "experimental",
   "entrypoint": "index.js",
   "capabilities": {
-    "live_capture": true,
-    "historical_read": false,
+    "live_capture": false,
+    "historical_read": true,
     "external_export": true,
     "external_import": true,
     "targeted_import": true,
