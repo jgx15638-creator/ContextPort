@@ -3,7 +3,6 @@
   "version": "0.2.0",
   "private": true,
   "description": "Portable context and handoffs across AI agents",
-  "main": "index.js",
   "type": "commonjs",
   "license": "MIT",
   "bin": {
@@ -16,11 +15,6 @@
   "scripts": {
     "contextport": "node packages/cli/bin/contextport.js",
     "test": "node --test packages/core/test/*.test.js packages/cli/test/*.test.js adapters/test/*.test.js adapters/openclaw/test/*.test.js adapters/codex/test/*.test.js"
-  },
-  "openclaw": {
-    "extensions": [
-      "./adapters/openclaw/index.js"
-    ]
   },
   "engines": {
     "node": ">=20.0.0"

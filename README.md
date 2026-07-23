@@ -45,7 +45,7 @@ Exports work immediately after the common installation. Open the adapter setup b
 Enable the ContextPort plugin and restart OpenClaw:
 
 ```bash
-openclaw plugins install -l .
+openclaw plugins install -l ./adapters/openclaw
 openclaw plugins enable context-port
 ```
 

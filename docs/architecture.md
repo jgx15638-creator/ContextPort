@@ -48,9 +48,7 @@ ContextPort/
 │   ├── claude-code/          # reserved integration boundary
 │   ├── _template/            # starting point for another host
 │   └── test/                 # shared adapter contract tests
-├── docs/
-├── index.js                  # backwards-compatible OpenClaw entry point
-└── openclaw.plugin.json      # backwards-compatible root manifest
+└── docs/
 ```
 
 Every adapter exposes a `contextport.adapter.json` manifest. Planned adapters
