@@ -1,16 +1,28 @@
 {
-  "name": "context-port",
-  "version": "0.1.0",
-  "description": "Portable Codex session export/import hooks.",
-  "type": "module",
+  "name": "contextport",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Portable context and handoffs across AI agents",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "MIT",
   "bin": {
-    "context-port": "./src/cli.js"
+    "contextport": "packages/cli/bin/contextport.js"
   },
+  "workspaces": [
+    "packages/*",
+    "adapters/*"
+  ],
   "scripts": {
-    "check": "node --check src/cli.js && node --check src/store.js && node --check src/codex-config.js && node --check src/format.js && node --check src/schema.js"
+    "contextport": "node packages/cli/bin/contextport.js",
+    "test": "node --test packages/core/test/*.test.js packages/cli/test/*.test.js adapters/test/*.test.js adapters/openclaw/test/*.test.js"
+  },
+  "openclaw": {
+    "extensions": [
+      "./adapters/openclaw/index.js"
+    ]
   },
   "engines": {
-    "node": ">=20"
-  },
-  "license": "MIT"
+    "node": ">=20.0.0"
+  }
 }

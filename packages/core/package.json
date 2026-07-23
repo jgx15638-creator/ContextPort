@@ -1,0 +1,8 @@
+{
+  "name": "@contextport/core",
+  "version": "0.2.0",
+  "description": "Host-independent schemas and storage for ContextPort",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "license": "MIT"
+}

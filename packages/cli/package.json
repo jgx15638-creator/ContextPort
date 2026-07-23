@@ -1,0 +1,13 @@
+{
+  "name": "contextport",
+  "version": "0.2.0",
+  "description": "CLI for portable cross-agent context handoffs",
+  "bin": {
+    "contextport": "bin/contextport.js"
+  },
+  "type": "commonjs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
