@@ -1,24 +1,54 @@
 # Claude Code Adapter
 
-Status: **planned**. This directory is reserved for the Claude Code integration.
+Reads Claude Code transcripts from disk and exports them as portable
+ContextPort bundles. Import is not implemented yet.
 
-## Expected Work
+## Storage Layout
 
-1. Document supported Claude Code versions, hooks, and native session storage.
-2. Implement a read-only historical transcript reader.
-3. Use supported hooks to capture incremental state when they add useful data.
-4. Normalize messages, tool activity, plans, file paths, and outcomes into Core.
-5. Implement import through supported hooks or session-start context injection.
-6. Add clean-environment install, export, import, and rollback tests.
+Claude Code writes one JSONL transcript per session:
 
-## Acceptance Scenario
+    ~/.claude/projects/<project-slug>/<session-id>.jsonl
 
-```text
-Create a Claude Code session with user messages, tool calls, edits, and tests
-  -> contextport export --from claude-code --session latest creates a valid bundle
-  -> contextport import FILE --to claude-code queues or injects it safely
-  -> a new Claude Code session recovers the goal, work, decisions, and next step
-```
+The project slug is derived from the directory the session was started in.
+Set CLAUDE_CONFIG_DIR to point the adapter at a different home.
 
-Do not export Claude authentication state or system instructions. Keep all
-Claude-specific parsing, hook registration, and injection code in this folder.
+## Transcript Notes
+
+The format has three traits that shape this adapter:
+
+- There is no session header row. Session metadata (sessionId, cwd, version,
+  gitBranch) is repeated on most rows, so the first occurrence of each field
+  wins.
+- Assistant content is a block array. Text blocks become llm.output events;
+  tool_use blocks are held until their result arrives.
+- Tool results are recorded under the user role, because the host treats them
+  as model input. They are matched back to their call through tool_use_id.
+
+## Event Mapping
+
+| Native row | Core event |
+| --- | --- |
+| user row with string content | llm.input |
+| assistant row, text block | llm.output |
+| assistant row, tool_use block | held, then merged into tool.result |
+| user row with a tool_result block | tool.result |
+
+Rows that are never exported: system, attachment, assistant thinking blocks,
+mode, permission-mode, file-history-snapshot, file-history-delta, ai-title,
+last-prompt, and any line that fails to parse.
+
+## Limits
+
+- Transcripts above 100 MB are rejected.
+- Only the most recent 500 events are kept.
+
+## Usage
+
+    contextport export --from claude-code --session latest
+    contextport export --from claude-code --session SESSION_ID
+
+## Testing
+
+    node --test adapters/claude-code/test/*.test.js
+
+Fixtures are synthetic and modelled on Claude Code 2.1.215.

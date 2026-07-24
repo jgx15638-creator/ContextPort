@@ -10,15 +10,17 @@ const {
 } = require("../../core/src");
 const codexAdapter = require("../../../adapters/codex");
 const openclawHistory = require("../../../adapters/openclaw/history");
+const claudeCodeAdapter = require("../../../adapters/claude-code");
 
 const VERSION = "0.2.0";
-const SUPPORTED_HOSTS = new Set(["openclaw", "codex"]);
+const SUPPORTED_HOSTS = new Set(["openclaw", "codex", "claude-code"]);
+const IMPORT_HOSTS = new Set(["openclaw", "codex"]);
 
 function usage() {
   return `ContextPort ${VERSION} - portable context for AI agents
 
 Usage:
-  contextport export [--from openclaw|codex] [--session latest] [-o FILE]
+  contextport export [--from openclaw|codex|claude-code] [--session latest] [-o FILE]
   contextport import FILE [--to openclaw|codex] [--session SESSION_ID]
 
 Import without --session is consumed by the next user-triggered target session.`;
@@ -59,6 +61,7 @@ function requireHost(host) {
 function resolveHostSession(host, selector) {
   if (host === "codex") return codexAdapter.resolveSession(selector);
   if (host === "openclaw") return openclawHistory.resolveSession(selector);
+  if (host === "claude-code") return claudeCodeAdapter.resolveSession(selector);
   return null;
 }
 
@@ -74,7 +77,9 @@ function exportSession(host, selector, output) {
     ? codexAdapter.ADAPTER_VERSION
     : host === "openclaw"
       ? openclawHistory.ADAPTER_VERSION
-      : VERSION;
+      : host === "claude-code"
+        ? claudeCodeAdapter.ADAPTER_VERSION
+        : VERSION;
   const bundle = createBundle(host, adapterVersion, selected.record);
   const file = writeBundle(bundle, output);
   return { bundle, file };
@@ -82,6 +87,11 @@ function exportSession(host, selector, output) {
 
 function queue(bundle, host, sessionId) {
   requireHost(host);
+  if (!IMPORT_HOSTS.has(host)) {
+    throw new Error(
+      `Host ${host} does not support import yet. Supported: ${[...IMPORT_HOSTS].join(", ")}.`
+    );
+  }
   if (host === "codex") codexAdapter.prepareImport();
   return queueImport(host, bundle, sessionId || null);
 }

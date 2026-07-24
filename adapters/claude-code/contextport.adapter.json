@@ -2,12 +2,12 @@
   "schema": "contextport.adapter/v1",
   "id": "claude-code",
   "display_name": "Claude Code",
-  "status": "planned",
-  "entrypoint": null,
+  "status": "experimental",
+  "entrypoint": "index.js",
   "capabilities": {
     "live_capture": false,
-    "historical_read": false,
-    "external_export": false,
+    "historical_read": true,
+    "external_export": true,
     "external_import": false,
     "targeted_import": false,
     "in_agent_commands": false
