@@ -1,7 +1,7 @@
 # ContextPort
 
 <p align="center">
-  Move working context between AI agent sessions.
+  Move working context across OpenClaw, Codex, and Claude Code.
 </p>
 
 <p align="center">
@@ -12,17 +12,17 @@
 
 ## 1. What Is ContextPort?
 
-ContextPort exports context from one AI agent session and imports it into another session.
+ContextPort turns existing OpenClaw, Codex, and Claude Code sessions into portable context bundles. A bundle can then be imported into another supported agent session.
 
 ```text
-OpenClaw session
+OpenClaw / Codex / Claude Code session
   -> contextport export
   -> portable bundle
   -> contextport import
-  -> Codex session continues the work
+  -> OpenClaw / Codex session continues the work
 ```
 
-ContextPort reads existing native session history. It does not modify native transcript files or replay previous tool calls.
+All three adapters read existing native session history, so they can export sessions created before ContextPort was installed. ContextPort does not modify native transcript files or replay previous tool calls.
 
 ## 2. Installation
 
@@ -35,7 +35,7 @@ npm install
 npm link
 ```
 
-Exports work immediately after the common installation. Open the adapter setup below only when you need to import context into that host.
+Exports from all three hosts work immediately after the common installation. Open the adapter setup below only when you need host-specific details or import support.
 
 <details>
 <summary><strong>OpenClaw</strong></summary>
@@ -64,6 +64,17 @@ Codex may ask you to trust the hook the first time it runs.
 
 </details>
 
+<details>
+<summary><strong>Claude Code</strong></summary>
+
+<br>
+
+No additional setup is required. ContextPort reads native sessions from `~/.claude/projects/`.
+
+Claude Code currently supports export only.
+
+</details>
+
 ## 3. Export And Import
 
 The shortest OpenClaw to Codex workflow is:
@@ -73,7 +84,7 @@ contextport export --from openclaw -o task.contextport.json
 contextport import task.contextport.json --to codex
 ```
 
-That is the complete workflow. OpenClaw and Codex can both be used as the source or target. Claude Code can currently be used as an export source.
+OpenClaw, Codex, and Claude Code can all be used as export sources. OpenClaw and Codex can also be used as import targets.
 
 <details>
 <summary><strong>OpenClaw commands</strong></summary>
