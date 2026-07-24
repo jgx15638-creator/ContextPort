@@ -10,7 +10,7 @@ must not introduce a separate portable bundle format.
 | --- | --- | ---: | ---: | ---: |
 | [OpenClaw](./openclaw/) | Experimental | No | Yes | Yes |
 | [Codex](./codex/) | Experimental | No | Yes | Yes |
-| [Claude Code](./claude-code/) | Planned | No | No | No |
+| [Claude Code](./claude-code/) | Experimental | No | Yes | No |
 
 Status meanings:
 

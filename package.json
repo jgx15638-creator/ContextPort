@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "contextport": "node packages/cli/bin/contextport.js",
-    "test": "node --test packages/core/test/*.test.js packages/cli/test/*.test.js adapters/test/*.test.js adapters/openclaw/test/*.test.js adapters/codex/test/*.test.js"
+    "test": "node --test packages/core/test/*.test.js packages/cli/test/*.test.js adapters/test/*.test.js adapters/openclaw/test/*.test.js adapters/codex/test/*.test.js adapters/claude-code/test/*.test.js"
   },
   "engines": {
     "node": ">=20.0.0"
