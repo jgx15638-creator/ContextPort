@@ -13,6 +13,12 @@ const ADAPTER_VERSION = "0.2.0";
 const HOST = "claude-code";
 const MAX_TRANSCRIPT_BYTES = 100 * 1024 * 1024;
 const MAX_EVENTS = 500;
+const INTERNAL_USER_PREFIXES = [
+  "<local-command-caveat>",
+  "<command-name>",
+  "<local-command-stdout>",
+  "<system-reminder>"
+];
 
 function getClaudeHome() {
   return path.resolve(
@@ -25,8 +31,11 @@ function listJsonlFiles(directory) {
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...listJsonlFiles(target));
-    else if (entry.isFile() && entry.name.endsWith(".jsonl")) files.push(target);
+    if (entry.isDirectory() && entry.name !== "subagents") {
+      files.push(...listJsonlFiles(target));
+    } else if (entry.isFile() && entry.name.endsWith(".jsonl")) {
+      files.push(target);
+    }
   }
   return files;
 }
@@ -52,8 +61,8 @@ function discoverSessions() {
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
-// Assistant content is a block array. Only plain text blocks may be exported;
-// thinking blocks are internal reasoning and stay out of the bundle.
+// Tool results may contain nested content blocks. Only plain text is portable;
+// thinking and other host-internal blocks stay out of the bundle.
 function textFromBlocks(content) {
   if (typeof content === "string") return content.trim();
   if (!Array.isArray(content)) return "";
@@ -69,18 +78,29 @@ function textFromBlocks(content) {
     .trim();
 }
 
-function eventId(sessionId, lineNumber, type) {
+function isInternalUserText(text) {
+  return INTERNAL_USER_PREFIXES.some((prefix) => text.startsWith(prefix));
+}
+
+function eventId(sessionId, lineNumber, blockIndex, type) {
   return crypto
     .createHash("sha256")
-    .update(`${sessionId}:${lineNumber}:${type}`)
+    .update(`${sessionId}:${lineNumber}:${blockIndex}:${type}`)
     .digest("hex")
     .slice(0, 32);
 }
 
-function normalizedEvent(sessionId, lineNumber, timestamp, type, payload) {
+function normalizedEvent(
+  sessionId,
+  lineNumber,
+  blockIndex,
+  timestamp,
+  type,
+  payload
+) {
   return {
     schema: EVENT_SCHEMA,
-    event_id: eventId(sessionId, lineNumber, type),
+    event_id: eventId(sessionId, lineNumber, blockIndex, type),
     timestamp: timestamp || new Date(0).toISOString(),
     type,
     session: { id: sessionId, agent_id: HOST, run_id: null },
@@ -113,6 +133,8 @@ function parseSession(descriptor) {
       continue;
     }
 
+    if (item.isSidechain === true) continue;
+
     // Session metadata is repeated on most rows instead of a dedicated header.
     if (!metadata.sessionId && item.sessionId) metadata.sessionId = item.sessionId;
     if (!metadata.cwd && item.cwd) metadata.cwd = item.cwd;
@@ -126,15 +148,21 @@ function parseSession(descriptor) {
     const sessionId = String(metadata.sessionId || descriptor.id);
 
     if (item.type === "user" && item.message) {
+      if (item.isMeta === true) continue;
       const content = item.message.content;
 
       if (typeof content === "string") {
         const text = content.trim();
-        if (text) {
+        if (text && !isInternalUserText(text)) {
           events.push(
-            normalizedEvent(sessionId, index, item.timestamp, "llm.input", {
-              prompt: text
-            })
+            normalizedEvent(
+              sessionId,
+              index,
+              0,
+              item.timestamp,
+              "llm.input",
+              { prompt: text }
+            )
           );
         }
         continue;
@@ -143,21 +171,49 @@ function parseSession(descriptor) {
       // Tool results are delivered under the user role because the host treats
       // them as input to the model.
       if (Array.isArray(content)) {
-        for (const block of content) {
-          if (block?.type !== "tool_result") continue;
-          const callId = block.tool_use_id || null;
-          const pending = pendingTools.get(callId) || { name: "unknown", input: null };
-          const output = textFromBlocks(block.content);
-          events.push(
-            normalizedEvent(sessionId, index, item.timestamp, "tool.result", {
-              tool_name: pending.name,
-              tool_call_id: callId,
-              params: pending.input,
-              result: block.is_error ? null : output || null,
-              error: block.is_error ? output || "Tool call failed" : null
-            })
-          );
-          if (callId) pendingTools.delete(callId);
+        for (let blockIndex = 0; blockIndex < content.length; blockIndex += 1) {
+          const block = content[blockIndex];
+          if (block?.type === "text" && typeof block.text === "string") {
+            const text = block.text.trim();
+            if (text && !isInternalUserText(text)) {
+              events.push(
+                normalizedEvent(
+                  sessionId,
+                  index,
+                  blockIndex,
+                  item.timestamp,
+                  "llm.input",
+                  { prompt: text }
+                )
+              );
+            }
+            continue;
+          }
+          if (block?.type === "tool_result") {
+            const callId = block.tool_use_id || null;
+            const pending = pendingTools.get(callId) || {
+              name: "unknown",
+              input: null
+            };
+            const output = textFromBlocks(block.content);
+            events.push(
+              normalizedEvent(
+                sessionId,
+                index,
+                blockIndex,
+                item.timestamp,
+                "tool.result",
+                {
+                  tool_name: pending.name,
+                  tool_call_id: callId,
+                  params: pending.input,
+                  result: block.is_error ? null : output || null,
+                  error: block.is_error ? output || "Tool call failed" : null
+                }
+              )
+            );
+            if (callId) pendingTools.delete(callId);
+          }
         }
       }
       continue;
@@ -168,16 +224,24 @@ function parseSession(descriptor) {
       const content = item.message.content;
       if (!Array.isArray(content)) continue;
 
-      for (const block of content) {
+      for (let blockIndex = 0; blockIndex < content.length; blockIndex += 1) {
+        const block = content[blockIndex];
         if (block?.type === "text" && typeof block.text === "string") {
           const text = block.text.trim();
           if (!text) continue;
           events.push(
-            normalizedEvent(sessionId, index, item.timestamp, "llm.output", {
-              provider: null,
-              model: item.message.model || model,
-              assistant_texts: [text]
-            })
+            normalizedEvent(
+              sessionId,
+              index,
+              blockIndex,
+              item.timestamp,
+              "llm.output",
+              {
+                provider: null,
+                model: item.message.model || model,
+                assistant_texts: [text]
+              }
+            )
           );
           continue;
         }

@@ -19,8 +19,9 @@ The format has three traits that shape this adapter:
 - There is no session header row. Session metadata (sessionId, cwd, version,
   gitBranch) is repeated on most rows, so the first occurrence of each field
   wins.
-- Assistant content is a block array. Text blocks become llm.output events;
-  tool_use blocks are held until their result arrives.
+- User and assistant content may be block arrays. Their text blocks become
+  llm.input and llm.output events; tool_use blocks are held until their result
+  arrives.
 - Tool results are recorded under the user role, because the host treats them
   as model input. They are matched back to their call through tool_use_id.
 
@@ -28,13 +29,14 @@ The format has three traits that shape this adapter:
 
 | Native row | Core event |
 | --- | --- |
-| user row with string content | llm.input |
+| user row with string or text-block content | llm.input |
 | assistant row, text block | llm.output |
 | assistant row, tool_use block | held, then merged into tool.result |
 | user row with a tool_result block | tool.result |
 
-Rows that are never exported: system, attachment, assistant thinking blocks,
-mode, permission-mode, file-history-snapshot, file-history-delta, ai-title,
+Rows that are never exported: subagent sidechains, user metadata and internal
+command wrappers, system, attachment, assistant thinking blocks, mode,
+permission-mode, file-history-snapshot, file-history-delta, ai-title,
 last-prompt, and any line that fails to parse.
 
 ## Limits

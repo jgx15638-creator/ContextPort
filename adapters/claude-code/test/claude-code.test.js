@@ -11,10 +11,11 @@ const { BUNDLE_SCHEMA, EVENT_SCHEMA, SESSION_SCHEMA, createBundle } = require(".
 
 const ADAPTER_DIRECTORY = path.join(__dirname, "..");
 const FIXTURE = path.join(__dirname, "fixtures", "session.jsonl");
+const EDGE_CASE_FIXTURE = path.join(__dirname, "fixtures", "edge-cases.jsonl");
 
-function fixtureDescriptor() {
+function fixtureDescriptor(file = FIXTURE) {
   return {
-    file: FIXTURE,
+    file,
     id: "fallback-id",
     projectSlug: "demo",
     cwd: null,
@@ -31,6 +32,16 @@ function withTemporaryHome(run) {
     FIXTURE,
     path.join(projectDirectory, "11111111-2222-3333-4444-555555555555.jsonl")
   );
+  const subagentDirectory = path.join(
+    projectDirectory,
+    "99999999-8888-7777-6666-555555555555",
+    "subagents"
+  );
+  fs.mkdirSync(subagentDirectory, { recursive: true });
+  const subagentFile = path.join(subagentDirectory, "agent-newest.jsonl");
+  fs.copyFileSync(EDGE_CASE_FIXTURE, subagentFile);
+  const future = new Date(Date.now() + 60_000);
+  fs.utimesSync(subagentFile, future, future);
 
   const previous = process.env.CLAUDE_CONFIG_DIR;
   process.env.CLAUDE_CONFIG_DIR = home;
@@ -103,6 +114,39 @@ test("never exports system prompts or internal reasoning", () => {
   assert.equal(serialized.includes("agent_listing_delta"), false);
 });
 
+test("exports array-form user text and keeps every event id unique", () => {
+  const record = adapter.parseSession(fixtureDescriptor(EDGE_CASE_FIXTURE));
+
+  assert.deepEqual(
+    record.events.map((event) => event.type),
+    ["llm.input", "llm.input", "tool.result", "tool.result"]
+  );
+  assert.deepEqual(
+    record.events
+      .filter((event) => event.type === "llm.input")
+      .map((event) => event.payload.prompt),
+    ["First array prompt", "Second array prompt"]
+  );
+  assert.equal(new Set(record.events.map((event) => event.event_id)).size, 4);
+});
+
+test("skips metadata wrappers and sidechain rows", () => {
+  const serialized = JSON.stringify(
+    adapter.parseSession(fixtureDescriptor(EDGE_CASE_FIXTURE))
+  );
+
+  for (const hiddenText of [
+    "Hidden metadata prompt",
+    "<local-command-caveat>",
+    "<command-name>",
+    "<local-command-stdout>",
+    "<system-reminder>",
+    "Hidden sidechain prompt"
+  ]) {
+    assert.equal(serialized.includes(hiddenText), false);
+  }
+});
+
 test("skips malformed and blank transcript lines", () => {
   const raw = fs.readFileSync(FIXTURE, "utf8").split(/\r?\n/);
   const unparsable = raw.filter((line) => {
@@ -142,7 +186,7 @@ test("rejects transcripts above the size guard", () => {
   }
 });
 
-test("discovers sessions and selects them by id or latest", () => {
+test("discovers top-level sessions but never subagent transcripts", () => {
   withTemporaryHome(() => {
     const sessions = adapter.discoverSessions();
     assert.equal(sessions.length, 1);
@@ -152,6 +196,7 @@ test("discovers sessions and selects them by id or latest", () => {
     const latest = adapter.resolveSession("latest");
     assert.ok(latest);
     assert.equal(latest.record.session.id, "11111111-2222-3333-4444-555555555555");
+    assert.equal(latest.file.includes(`${path.sep}subagents${path.sep}`), false);
 
     const targeted = adapter.resolveSession("11111111-2222-3333-4444-555555555555");
     assert.ok(targeted);

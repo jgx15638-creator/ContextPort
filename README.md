@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Hosts-OpenClaw%20%7C%20Codex-green" alt="hosts">
+  <img src="https://img.shields.io/badge/Hosts-OpenClaw%20%7C%20Codex%20%7C%20Claude%20Code-green" alt="hosts">
   <img src="https://img.shields.io/badge/Format-contextport.bundle%2Fv1-blue" alt="bundle format">
   <img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="license">
 </p>
@@ -26,7 +26,7 @@ ContextPort reads existing native session history. It does not modify native tra
 
 ## 2. Installation
 
-Requirements: Node.js 20+ and OpenClaw or Codex.
+Requirements: Node.js 20+ and OpenClaw, Codex, or Claude Code.
 
 ```bash
 git clone https://github.com/Xubqpanda/ContextPort.git
@@ -73,7 +73,7 @@ contextport export --from openclaw -o task.contextport.json
 contextport import task.contextport.json --to codex
 ```
 
-That is the complete workflow. OpenClaw and Codex can both be used as the source or target.
+That is the complete workflow. OpenClaw and Codex can both be used as the source or target. Claude Code can currently be used as an export source.
 
 <details>
 <summary><strong>OpenClaw commands</strong></summary>
@@ -124,6 +124,27 @@ Select a specific Codex session when needed:
 contextport export --from codex --session SESSION_ID
 contextport import task.contextport.json --to codex --session SESSION_ID
 ```
+
+</details>
+
+<details>
+<summary><strong>Claude Code commands</strong></summary>
+
+<br>
+
+Export the latest Claude Code session:
+
+```bash
+contextport export --from claude-code
+```
+
+Select a specific Claude Code session when needed:
+
+```bash
+contextport export --from claude-code --session SESSION_ID
+```
+
+Claude Code import is not supported yet.
 
 </details>
 
