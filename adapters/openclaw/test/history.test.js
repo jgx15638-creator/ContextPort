@@ -150,3 +150,115 @@ test("discovers orphan OpenClaw transcripts that are not in sessions.json", (t) 
   assert.equal(selected.record.session.agent_id, "worker");
   assert.match(selected.record.events[0].payload.prompt, /Recover this task/);
 });
+
+test("normalizes legacy toolUse blocks and tool messages", (t) => {
+  const state = withTemporaryState(t);
+  const sessionId = "legacy-tool-session";
+  const sessionsDirectory = path.join(state, "agents", "legacy", "sessions");
+  const transcript = path.join(sessionsDirectory, `${sessionId}.jsonl`);
+  writeJsonl(transcript, [
+    {
+      type: "session",
+      id: sessionId,
+      version: 2,
+      timestamp: "2026-07-23T12:00:00.000Z",
+      cwd: "/tmp/legacy-project"
+    },
+    {
+      type: "message",
+      timestamp: "2026-07-23T12:00:01.000Z",
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "Run the compatibility test" }]
+      }
+    },
+    {
+      type: "message",
+      timestamp: "2026-07-23T12:00:02.000Z",
+      message: {
+        role: "assistant",
+        provider: "legacy-provider",
+        model: "legacy-model",
+        content: [
+          { type: "text", text: "I will run the test." },
+          {
+            type: "toolUse",
+            id: "legacy-call-1",
+            name: "exec",
+            input: { command: "npm test", password: "legacy-secret" }
+          }
+        ]
+      }
+    },
+    {
+      type: "message",
+      timestamp: "2026-07-23T12:00:03.000Z",
+      message: {
+        role: "tool",
+        toolUseId: "legacy-call-1",
+        toolName: "exec",
+        content: [{ type: "text", text: "compatibility tests passed" }]
+      }
+    }
+  ]);
+
+  const selected = history.resolveSession(`legacy/${sessionId}`);
+  assert.deepEqual(
+    selected.record.events.map((event) => event.type),
+    ["llm.input", "llm.output", "tool.result"]
+  );
+  assert.equal(selected.record.events[2].payload.tool_name, "exec");
+  assert.equal(selected.record.events[2].payload.tool_call_id, "legacy-call-1");
+  assert.equal(selected.record.events[2].payload.params.command, "npm test");
+  assert.equal(
+    selected.record.events[2].payload.result,
+    "compatibility tests passed"
+  );
+
+  const bundle = core.createBundle(
+    "openclaw",
+    history.ADAPTER_VERSION,
+    selected.record
+  );
+  assert.equal(bundle.events[2].payload.params.password, "[REDACTED]");
+});
+
+test("skips malformed transcript lines and preserves orphan tool results", (t) => {
+  const state = withTemporaryState(t);
+  const sessionId = "malformed-session";
+  const sessionsDirectory = path.join(state, "agents", "worker", "sessions");
+  const transcript = path.join(sessionsDirectory, `${sessionId}.jsonl`);
+  fs.mkdirSync(sessionsDirectory, { recursive: true });
+  fs.writeFileSync(
+    transcript,
+    [
+      JSON.stringify({
+        type: "session",
+        id: sessionId,
+        version: 3,
+        timestamp: "2026-07-23T13:00:00.000Z",
+        cwd: "/tmp/malformed-project"
+      }),
+      '{"type":"message","message":',
+      JSON.stringify({
+        type: "message",
+        timestamp: "2026-07-23T13:00:01.000Z",
+        message: {
+          role: "toolResult",
+          toolName: "read_file",
+          content: [{ type: "text", text: "orphan result" }]
+        }
+      }),
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const selected = history.resolveSession(`worker/${sessionId}`);
+  assert.equal(selected.record.events.length, 1);
+  assert.equal(selected.record.events[0].type, "tool.result");
+  assert.equal(selected.record.events[0].payload.tool_name, "read_file");
+  assert.equal(selected.record.events[0].payload.tool_call_id, null);
+  assert.equal(selected.record.events[0].payload.params, null);
+  assert.equal(selected.record.events[0].payload.result, "orphan result");
+});
